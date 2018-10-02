@@ -149,34 +149,34 @@ if not os.path.exists(truthfile):
     from desitarget.targetmask import desi_mask, bgs_mask, mws_mask
 
     #targetsfilename = "small_chunk_targets-dr5.0-0.16.2.fits"
-    colnames = list(targets.dtype.names)
+    colnames = list(targetdata.dtype.names)
     print(colnames)
-    nobj = len(targets)
+    nobj = len(targetdata)
     truth, objtruth = mb.empty_truth_table(nobj=nobj)
     print(truth.keys())
 
     for k in colnames:
         if k in truth.keys():
             print(k)
-            truth[k][:] = targets[k][:]
+            truth[k][:] = targetdata[k][:]
 
     nothing = '          '
     truth['TEMPLATESUBTYPE'] = np.repeat(nothing, nobj)
 
     masks = ['BGS_ANY', 'ELG', 'LRG', 'QSO', 'STD_FSTAR', 'STD_BRIGHT']
     dict_truespectype = {'BGS_ANY':'GALAXY', 'ELG':'GALAXY', 'LRG':'GALAXY', 'QSO':'QSO', 
-                    'STD_FSTAR':'STAR', 'STD_BRIGHT':'STAR'}
+                    'STD_FSTAR':'STAR', 'STD_BRIGHT':'STAR', 'STD':'STAR'}
     dict_truetemplatetype = {'BGS_ANY':'BGS', 'ELG':'ELG', 'LRG':'LRG', 'QSO':'QSO', 
-                        'STD_FSTAR':'STAR', 'STD_BRIGHT':'STAR'}
+                        'STD_FSTAR':'STAR', 'STD_BRIGHT':'STAR', 'STD':'STAR'}
 
     for m in masks:
-        istype = (targets['DESI_TARGET'] & desi_mask.mask(m))!=0
-        print(m, np.count_nonzero(istype))
-        truth['TRUESPECTYPE'][istype] = np.repeat(dict_truespectype[m], np.count_nonzero(istype))
-        truth['TEMPLATETYPE'][istype] = np.repeat(dict_truetemplatetype[m], np.count_nonzero(istype))
-        truth['MOCKID'][istype] = targets['TARGETID'][istype]
-
-    del targets
+        if m in desi_mask.names():
+            istype = (targetdata['DESI_TARGET'] & desi_mask.mask(m))!=0
+            print(m, np.count_nonzero(istype))
+            truth['TRUESPECTYPE'][istype] = np.repeat(dict_truespectype[m], np.count_nonzero(istype))
+            truth['TEMPLATETYPE'][istype] = np.repeat(dict_truetemplatetype[m], np.count_nonzero(istype))
+            truth['MOCKID'][istype] = targetdata['TARGETID'][istype]
+        
     print('writing truth')
     truth.write(truthfile, overwrite=True)
     print('done truth')
