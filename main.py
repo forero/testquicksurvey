@@ -9,6 +9,7 @@ import glob
 from desisim.quickcat import quickcat
 import desimodel.io
 import argparse
+import shutil
 
 parser = argparse.ArgumentParser(description='Define parameters')
 parser.add_argument('--program', type=str, required=True,
@@ -39,11 +40,17 @@ names = {"targets": "dr7.1-PR372.fits", "skies":"dr7.1-0.22.0.fits", "gfas": "dr
 mtlfile = os.path.join(datadir, 'mtl.fits')
 truthfile = os.path.join(datadir, 'truth.fits')
 starfile = os.path.join(datadir, 'std.fits')
+targetcutfile = os.path.join(datadir, 'targets.fits') 
+skycutfile = os.path.join(datadir, 'sky.fits') 
+fibstatusfile = os.path.join(datadir, 'fiberstatus.ecsv')
 targetfile = os.path.join(paths["targets"], "targets-{}".format(names["targets"]))
 skyfile = os.path.join(paths["skies"], "skies-{}".format(names["skies"]))
 gfafile = os.path.join(paths["gfas"], "gfas-{}".format(names["gfas"]))
 tilefile = os.path.join(datadir, "input_tiles.fits")
 
+# fiberstatus file
+if not.os.path.exists(fibstatusfile):
+    shutil.copyfile('fiberstatus.ecsv', fibstatusfile)
 
 # tile selection
 
@@ -69,7 +76,7 @@ if not os.path.exists(tilefile):
     print("wrote tiles to {}".format(tilefile))
 
 # target selection
-if (not os.path.exists(mtlfile)) or (not os.path.exists(starfile) or (not os.path.exists(truthfile))):
+if (not os.path.exists(mtlfile)) or (not os.path.exists(starfile) or (not os.path.exists(truthfile)) or (not os.path.exists(targetcutfile))):
     columns=['TARGETID','SUBPRIORITY', 'BRICKID', 'BRICK_OBJID', 'REF_ID',
             'PMRA', 'PMDEC', 'PMRA_IVAR', 'PMDEC_IVAR', 'FLUX_G', 'FLUX_R', 'FLUX_Z',
             'FLUX_W1', 'FLUX_W2', 'FLUX_IVAR_G', 'FLUX_IVAR_R', 'FLUX_IVAR_Z',
@@ -93,6 +100,21 @@ if (not os.path.exists(mtlfile)) or (not os.path.exists(starfile) or (not os.pat
         ii = (targetdata['RA']>10) &  (targetdata['RA']<40) & (targetdata['DEC']<15) & (targetdata['DEC']>-15)
         targetdata = targetdata[ii]
     print('Done reading target data to comput mtl + star')
+
+# compute targetcut file
+
+if (not os.path.exists(targetcutfile)):
+    Table(targetdata).write(targetcutfile, overwrite=True)
+    print('Done writing target cut data')
+    
+# compute skycut file
+if (not os.path.exists(skycutfile)):
+    skydata = fitsio.read(skyfile)
+    if size=="small":
+        ii = (skydata['RA']>10) &  (skydata['RA']<40) & (skydata['DEC']<15) & (skydata['DEC']>-15)
+        skydata = skydata[ii]
+    Table(skydata).write(skycutfile, overwrite=True)
+    print('Done writing sky cut data')
 
 #compute MTL
 if not os.path.exists(mtlfile):
@@ -181,16 +203,13 @@ if not os.path.exists(truthfile):
     truth.write(truthfile, overwrite=True)
     print('done truth')
     
-# Running fiberassign
-cmd = "fiberassign --mtl {} ".format(mtlfile)
-cmd += " --sky {} ".format(skyfile)
-cmd += " --stdstar {} ".format(starfile)
-cmd += " --fibstatusfile ./fiberstatus.ecsv"
-cmd += " --footprint {} ".format(tilefile)
-cmd += " --gfafile {}".format(gfafile)
-cmd += " --outdir {} ".format(fiberdir)
-
+# Running quicksurvey
+cmd = "quicksurvey -T {}".format(data_dir)
+cmd += " -f fiberassign "
+cmd += " -E /global/project/projectdirs/desi/datachallenge/surveysim2017/baseline_1m/exposures.fits"
+cmd += " -D fiberassign_dates_baseline_1m.txt"
 print(cmd)
-print('starting fiberassign')
+print('starting quicksurvey')
 os.system(cmd)
-print('finished fiberassign')
+print('finished quicksurvey')
+
