@@ -49,7 +49,7 @@ gfafile = os.path.join(paths["gfas"], "gfas-{}".format(names["gfas"]))
 tilefile = os.path.join(datadir, "input_tiles.fits")
 
 # fiberstatus file
-if not.os.path.exists(fibstatusfile):
+if not os.path.exists(fibstatusfile):
     shutil.copyfile('fiberstatus.ecsv', fibstatusfile)
 
 # tile selection
@@ -204,7 +204,7 @@ if not os.path.exists(truthfile):
     print('done truth')
     
 # Running quicksurvey
-cmd = "quicksurvey -T {}".format(data_dir)
+cmd = "quicksurvey -T {}".format(datadir)
 cmd += " -f fiberassign "
 cmd += " -E /global/project/projectdirs/desi/datachallenge/surveysim2017/baseline_1m/exposures.fits"
 cmd += " -D fiberassign_dates_baseline_1m.txt"
